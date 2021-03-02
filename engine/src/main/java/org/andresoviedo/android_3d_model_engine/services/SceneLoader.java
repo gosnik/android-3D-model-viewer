@@ -292,6 +292,15 @@ public class SceneLoader implements LoadListener, EventListener {
         //rescale(this.getObjects(), DEFAULT_MAX_MODEL_SIZE, new float[3]);
     }
 
+    public final synchronized void clear() {
+        objects.clear();
+        guiObjects.clear();
+
+        // rescale objects so they fit in the viewport
+        // FIXME: this does not be reviewed
+        //rescale(this.getObjects(), DEFAULT_MAX_MODEL_SIZE, new float[3]);
+    }
+
     public final synchronized void addGUIObject(Object3DData obj) {
 
         // log event

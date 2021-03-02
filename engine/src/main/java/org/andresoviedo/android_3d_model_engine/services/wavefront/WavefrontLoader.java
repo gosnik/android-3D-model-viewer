@@ -45,6 +45,7 @@ import org.andresoviedo.util.android.ContentUtils;
 import org.andresoviedo.util.io.IOUtils;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -89,6 +90,77 @@ public class WavefrontLoader {
             throw new RuntimeException(e);
         }
         return null;
+    }
+
+    public List<Object3DData> load(String id, String modelData) {
+        try {
+
+            // log event
+            Log.i("WavefrontLoader", "Loading model... " + id);
+
+            // log event
+            Log.i("WavefrontLoader", "--------------------------------------------------");
+            Log.i("WavefrontLoader", "Parsing geometries... ");
+            Log.i("WavefrontLoader", "--------------------------------------------------");
+
+            // open stream, parse model, then close stream
+            InputStream is = new ByteArrayInputStream(modelData.getBytes());
+            final List<MeshData> meshes = loadModel(id, is);
+            is.close();
+
+            // 3D meshes
+            final List<Object3DData> ret = new ArrayList<>();
+
+            // log event
+            Log.i("WavefrontLoader", "Processing geometries... ");
+
+            // notify listener
+            callback.onProgress("Processing geometries...");
+
+            // proces all meshes
+            for (MeshData meshData : meshes) {
+
+                // notify listener
+                callback.onProgress("Processing normals...");
+
+                // fix missing or wrong normals
+                meshData.fixNormals();
+
+                // check we didn't brake normals
+                meshData.validate();
+
+                // create 3D object
+                Object3DData data3D = new Object3DData(meshData.getVertexBuffer());
+                data3D.setMeshData(meshData);
+                data3D.setId(meshData.getId());
+                data3D.setName(meshData.getName());
+                data3D.setNormalsBuffer(meshData.getNormalsBuffer());
+                data3D.setTextureBuffer(meshData.getTextureBuffer());
+                data3D.setElements(meshData.getElements());
+                data3D.setId(id);
+                //data3D.setUri(id);
+                data3D.setDrawUsingArrays(false);
+                data3D.setDrawMode(GLES20.GL_TRIANGLES);
+
+                // add model to scene
+                callback.onLoad(data3D);
+
+                // notify listener
+                callback.onProgress("Loading materials...");
+
+                // load colors and textures
+                loadMaterials(meshData);
+
+                ret.add(data3D);
+            }
+
+            // log event
+            Log.i("WavefrontLoader", "Loaded geometries: " + ret.size());
+
+            return ret;
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public List<Object3DData> load(URI modelURI) {
